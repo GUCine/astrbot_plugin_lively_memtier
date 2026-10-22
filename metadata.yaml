@@ -1,9 +1,14 @@
 name: astrbot_plugin_lively_memtier
 display_name: 記憶分層壓縮
 desc: 給 LivingMemory 做記憶分層：零碎記憶按日、周、月、季逐級壓縮，省 token
+short_desc: LivingMemory 記憶按日、週、月、季逐級壓縮，省 token
 version: 2.0.0
 author: GUCine
 repo: https://github.com/GUCine/astrbot_plugin_lively_memtier
 support_platforms:
   - aiocqhttp
 astrbot_version: ">=4.29.0"
+tags:
+  - 記憶
+  - LivingMemory
+  - lively
