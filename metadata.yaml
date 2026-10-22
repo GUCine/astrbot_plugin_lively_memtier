@@ -8,6 +8,7 @@ repo: https://github.com/GUCine/astrbot_plugin_lively_memtier
 support_platforms:
   - aiocqhttp
 astrbot_version: ">=4.29.0"
+category: 长期记忆
 tags:
   - 記憶
   - LivingMemory
