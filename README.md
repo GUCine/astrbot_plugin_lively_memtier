@@ -1,4 +1,4 @@
-# 記憶分層壓縮
+# Sedimentum · 記憶分層壓縮
 
 > 給 LivingMemory 做記憶分層：零碎記憶按日、周、月、季逐級壓縮，省 token
 
