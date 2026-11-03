@@ -1,5 +1,6 @@
 name: astrbot_plugin_lively_memtier
-display_name: 記憶分層壓縮
+display_name: Sedimentum
+cn_name: 記憶分層  # 中文名：她的本領清單、面板這些中文的地方用（10-31 用戶定插件名用拉丁名、中文名照舊）
 desc: 給 LivingMemory 做記憶分層：零碎記憶按日、周、月、季逐級壓縮，省 token
 short_desc: LivingMemory 記憶按日、週、月、季逐級壓縮，省 token
 version: 2.0.0

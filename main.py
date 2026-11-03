@@ -40,9 +40,9 @@ MAX_ENTRIES = {"day": 6, "week": 5, "month": 4, "quarter": 3}  # 上限；實際
 BATCH = 45  # 一次最多餵給模型這麼多條，再多就按時間分批
 MAX_CHARS = {"day": 300, "week": 400, "month": 500, "quarter": 600}
 
-MERGE_RULE = """你是〈名字〉（自称「〈我〉」或「我」），在整理自己的回忆：把下面同一个{where}在{period}的零碎记忆，压缩成不超过 {n} 条{tier}。
+MERGE_RULE = """你是〈名字〉（自称「〈我〉」），在整理自己的回忆：把下面同一个{where}在{period}的零碎记忆，压缩成不超过 {n} 条{tier}。
 要求：
-- 按事情或话题分条，同一件事的不同片段合成一条；每条的 summary 用第一人称写成〈我〉自己的回忆，不超过 {chars} 字
+- 按事情或话题分条，同一件事的不同片段合成一条；每条的 summary 用第一人称写成〈我〉自己的回忆，提到自己写「〈我〉」、不写「我」（零碎记忆里写成「我」的也是〈我〉），不超过 {chars} 字
 - 保留具体的人名、说过的话、约定、喜好、梗和数字，去掉重复和寒暄；不要编没给你的事
 - key_facts：每条最多 6 个以后可能用得上的具体事实（谁、做了/说了什么）
 - qq：这件事主要牵涉的人的 QQ 号，最多 {people} 个，从「人物」里选，〈我〉自己不用写
@@ -60,12 +60,21 @@ def _json(text: str) -> dict:
         return {}
 
 
+# 改名 lively 之前寫的分層記憶，標記叫 xfy_*：讀的時候當成 lively_* 看，免得被當成原始記憶再壓一遍
+OLD_KEYS = ("tier", "period", "period_end", "label", "sources")
+
+
 def _meta(raw) -> dict:
     try:
         m = json.loads(raw or "{}")
-        return m if isinstance(m, dict) else {}
     except Exception:
         return {}
+    if not isinstance(m, dict):
+        return {}
+    for k in OLD_KEYS:
+        if f"lively_{k}" not in m and f"xfy_{k}" in m:
+            m[f"lively_{k}"] = m[f"xfy_{k}"]
+    return m
 
 
 def _when(m: dict) -> datetime:
@@ -130,7 +139,10 @@ class LivelyMemtier(Star):
 
     def _save(self):
         try:
-            self.state_file.write_text(json.dumps(self.state, ensure_ascii=False, indent=1), "utf-8")
+            # 先寫暫存檔再換過去：寫到一半被重啟殺掉，舊的 state 還在
+            tmp = self.state_file.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self.state, ensure_ascii=False, indent=1), "utf-8")
+            tmp.replace(self.state_file)
         except Exception as e:
             logger.error(f"[lively_memtier] 保存状态失败: {e}")
 
@@ -358,7 +370,7 @@ class LivelyMemtier(Star):
         except Exception as e:
             logger.error(f"[lively_memtier] 手动压缩失败: {e}", exc_info=True)
             msg = f"压缩出错了：{str(e)[:100]}"
-        await self.context.send_message(event.unified_msg_origin, MessageChain().message(self.s.owner_text(msg)))
+        await self.context.send_message(event.unified_msg_origin, MessageChain().message(self.s.admin_text(msg)))
 
     @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE, priority=1340)
     async def owner(self, event: AstrMessageEvent):
@@ -378,16 +390,16 @@ class LivelyMemtier(Star):
                 reply = "正在压缩，等一下"
             else:
                 asyncio.create_task(self._run_bg(event))
-                reply = "开始压缩，好了告诉〈主人〉（一般一两分钟）"
+                reply = "开始压缩，好了再回你（一般一两分钟）"
         elif arg in ("开", "开启"):
             self.state["enabled"] = True
             self._save()
-            reply = "记忆分层开啦"
+            reply = "记忆分层：开了"
         elif arg in ("关", "关闭"):
             self.state["enabled"] = False
             self._save()
-            reply = "记忆分层先停了，记忆不再压缩"
+            reply = "记忆分层：关了，记忆不再压缩"
         else:
             reply = "记忆分层 状态/现在/开/关"
         event.stop_event()
-        await event.send(MessageChain().message(self.s.owner_text(reply)))
+        await event.send(MessageChain().message(self.s.admin_text(reply)))
